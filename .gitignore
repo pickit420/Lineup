@@ -371,3 +371,6 @@ FodyWeavers.xsd
 src/Lineup.Web/settings.json
 
 src/Lineup.Web/epg.xml
+
+# Docker Compose environment file (may contain CERT_PASSWORD)
+# .env

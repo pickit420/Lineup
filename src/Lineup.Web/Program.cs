@@ -12,8 +12,8 @@ if (!builder.Environment.IsDevelopment())
     {
         var httpPort = context.Configuration.GetValue(AppConstants.HttpPortConfigKey, AppConstants.DefaultHttpPort);
         var httpsPort = context.Configuration.GetValue(AppConstants.HttpsPortConfigKey, AppConstants.DefaultHttpsPort);
-        var certPath = context.Configuration["Kestrel:Certificates:Default:Path"];
-        var certPassword = context.Configuration["Kestrel:Certificates:Default:Password"];
+        var certPath = context.Configuration[AppConstants.CertPathConfigKey];
+        var certPassword = context.Configuration[AppConstants.CertPasswordConfigKey];
 
         serverOptions.ListenAnyIP(httpPort);
 

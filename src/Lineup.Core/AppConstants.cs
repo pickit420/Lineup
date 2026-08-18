@@ -71,6 +71,20 @@ public static class AppConstants
     public const int DefaultHttpsPort = 8443;
 
     /// <summary>
+    /// Configuration key for the HTTPS certificate (.pfx) file path.
+    /// Intentionally not under the reserved "Kestrel:Certificates:Default" key: Kestrel binds that
+    /// section automatically on every startup and validates it eagerly, which would crash the app
+    /// on missing-certificate even when HTTPS is meant to be optional. Using our own key keeps the
+    /// File.Exists check in Program.cs as the sole gate for enabling HTTPS.
+    /// </summary>
+    public const string CertPathConfigKey = "Lineup:CertPath";
+
+    /// <summary>
+    /// Configuration key for the HTTPS certificate (.pfx) password.
+    /// </summary>
+    public const string CertPasswordConfigKey = "Lineup:CertPassword";
+
+    /// <summary>
     /// XMLTV episode numbering system identifier.
     /// </summary>
     public const string XmltvNsSystem = "xmltv_ns";

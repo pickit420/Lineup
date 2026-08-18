@@ -1,6 +1,6 @@
 services:
   lineup:
-    image: ${DOCKER_IMAGE:-am385/lineup:latest}
+    image: ${DOCKER_IMAGE:-pickit420/lineup:latest}
     container_name: lineup
     ports:
       - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
@@ -10,8 +10,9 @@ services:
       - config:/config
       # Persist XMLTV output across container restarts (optional, only if you use the XMLTV output feature)
       - xmltv:/xmltv
-      # Mount a directory containing your PFX certificate for HTTPS
-      # e.g., place lineup.pfx in ./certs/
+      # Optional: mount a directory containing your PFX certificate for HTTPS.
+      # e.g., place lineup.pfx in ./certs/. Safe to leave as-is if you don't need HTTPS -
+      # the app only enables HTTPS when the certificate file actually exists on disk.
       - ./certs:/app/certs:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -19,8 +20,13 @@ services:
       - Lineup__XmltvPath=/xmltv
       - Lineup__HttpPort=${HTTP_PORT:-8080}
       - Lineup__HttpsPort=${HTTPS_PORT:-8443}
-      - Kestrel__Certificates__Default__Path=/app/certs/lineup.pfx
-      - Kestrel__Certificates__Default__Password=${CERT_PASSWORD:-}
+      # Optional HTTPS certificate. Set CERT_PASSWORD if your PFX requires one.
+      # Deliberately NOT Kestrel__Certificates__Default__* - Kestrel binds and eagerly
+      # validates that reserved key on every startup, which crashes the app when no
+      # certificate has been provided yet. This app-owned key is only read by our own
+      # File.Exists-gated logic in Program.cs, so it's safe to leave set with no cert present.
+      - Lineup__CertPath=/app/certs/lineup.pfx
+      - Lineup__CertPassword=${CERT_PASSWORD:-}
     # Use host network mode if the HDHomeRun device is on the local network
     # and you need device discovery to work.
     # network_mode: host
