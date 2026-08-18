@@ -2,10 +2,13 @@ using Lineup.HDHomeRun.Device;
 using Lineup.Core;
 using Lineup.Web.Components;
 using Lineup.Web.Services;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to optionally enable HTTPS when a certificate is available
+// Configure Kestrel to optionally enable HTTPS when a certificate is available.
+// HTTPS must never be able to take the whole host down: a missing, empty, corrupt, or
+// wrong-password certificate should just mean "no HTTPS this run", not a crash loop.
 if (!builder.Environment.IsDevelopment())
 {
     builder.WebHost.ConfigureKestrel((context, serverOptions) =>
@@ -17,14 +20,46 @@ if (!builder.Environment.IsDevelopment())
 
         serverOptions.ListenAnyIP(httpPort);
 
-        if (!string.IsNullOrEmpty(certPath) && File.Exists(certPath))
+        if (string.IsNullOrEmpty(certPath))
         {
+            return;
+        }
+
+        try
+        {
+            var certFile = new FileInfo(certPath);
+            if (!certFile.Exists || certFile.Length == 0)
+            {
+                LogHttpsSkipped(serverOptions, $"Certificate not found or empty at {certPath}.");
+                return;
+            }
+
             serverOptions.ListenAnyIP(httpsPort, listenOptions =>
             {
                 listenOptions.UseHttps(certPath, certPassword ?? string.Empty);
             });
         }
+        catch (Exception ex)
+        {
+            LogHttpsSkipped(serverOptions, $"Failed to load certificate from {certPath}: {ex.Message}");
+        }
     });
+}
+
+// Logs why HTTPS was skipped without letting logger resolution itself risk startup -
+// ApplicationServices is populated by the framework before this callback runs, but we
+// fall back to stderr rather than let a logging failure mask the real problem.
+static void LogHttpsSkipped(KestrelServerOptions serverOptions, string reason)
+{
+    try
+    {
+        serverOptions.ApplicationServices.GetRequiredService<ILogger<Program>>()
+            .LogWarning("HTTPS disabled: {Reason} Continuing with HTTP only.", reason);
+    }
+    catch
+    {
+        Console.Error.WriteLine($"HTTPS disabled: {reason} Continuing with HTTP only.");
+    }
 }
 
 // Resolve application config directory from configuration (supports appsettings.json + environment variables)
